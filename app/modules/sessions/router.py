@@ -8,7 +8,7 @@ session_router = APIRouter(prefix="/chat-sessions", tags=["chat-sessions"])
 
 
 @session_router.post("/")
-async def create_chat_session(db_session: Session = Depends(get_db)):
+def create_chat_session(db_session: Session = Depends(get_db)):
     new_session = ChatSession()
     db_session.add(new_session)
     db_session.commit()
