@@ -1,0 +1,27 @@
+[project]
+name = "fastapi-agent-streaming"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "alembic>=1.18.4",
+    "fastapi>=0.135.1",
+    "greenlet>=3.3.2",
+    "openai-agents[litellm]>=0.11.1",
+    "python-dotenv>=1.2.2",
+    "uvicorn>=0.41.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.5",
+]
+
+[tool.ruff]
+line-length=88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+exclude = ["alembic"]
