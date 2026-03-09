@@ -11,6 +11,8 @@ dependencies = [
     "greenlet>=3.3.2",
     "openai-agents[litellm]>=0.11.1",
     "python-dotenv>=1.2.2",
+    "scalar-fastapi>=1.8.0",
+    "sqlmodel>=0.0.37",
     "uvicorn>=0.41.0",
 ]
 
