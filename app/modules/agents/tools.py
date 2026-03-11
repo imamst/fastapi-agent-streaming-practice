@@ -1,4 +1,3 @@
-
 from agents import function_tool
 from tavily import TavilyClient
 
