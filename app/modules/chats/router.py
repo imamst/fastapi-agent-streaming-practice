@@ -1,3 +1,5 @@
+import json
+
 from agents import Agent, RawResponsesStreamEvent, RunItemStreamEvent, Runner
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -26,11 +28,10 @@ async def generate_answer(request: ChatRequest, db_session: Session = Depends(ge
                 event, RawResponsesStreamEvent
             ):
                 if isinstance(event.data, ResponseTextDeltaEvent):
-                    yield event.data.delta
+                    yield f"data: {json.dumps({'type': 'text', 'content': event.data.delta})} \n\n" #noqa
 
             elif isinstance(event, RunItemStreamEvent) and event.name == "tool_called":
                 if isinstance(event.item.raw_item, ResponseFunctionToolCall):
-                    yield f"[TOOL_CALL]: {event.item.raw_item.name}"
-                    yield f"[TOOL_ARGUMENT]: {event.item.raw_item.arguments}"
+                    yield f"data: {json.dumps({'type': 'tool_call', 'tool_name': event.item.raw_item.name, "arguments": event.item.raw_item.arguments})} \n\n" #noqa
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
