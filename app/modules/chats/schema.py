@@ -2,5 +2,5 @@ from pydantic import BaseModel
 
 
 class ChatRequest(BaseModel):
-    session_id: int
+    session_id: str
     message: str

@@ -1,12 +1,13 @@
 import json
 
 from agents import Agent, RawResponsesStreamEvent, RunItemStreamEvent, Runner
+from agents.extensions.memory import SQLAlchemySession
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from openai.types.responses import ResponseFunctionToolCall, ResponseTextDeltaEvent
 from sqlmodel import Session
 
-from app.models.engine import get_db
+from app.models.engine import engine, get_db
 from app.modules.agents.models import llm_model
 from app.modules.agents.prompt import SYSTEM_PROMPT
 from app.modules.agents.tools import search_web
@@ -17,10 +18,17 @@ chat_router = APIRouter(prefix="/chat", tags=["chat"])
 
 @chat_router.post("/")
 async def generate_answer(request: ChatRequest, db_session: Session = Depends(get_db)):
+
+    session = SQLAlchemySession(
+        session_id=request.session_id,
+        engine=engine,
+        create_tables=True
+    )
+
     agent = Agent(
         "Assistant", instructions=SYSTEM_PROMPT, model=llm_model, tools=[search_web]
     )
-    runner = Runner.run_streamed(agent, request.message)
+    runner = Runner.run_streamed(agent, request.message, session=session)
 
     async def event_generator():
         async for event in runner.stream_events():
