@@ -17,3 +17,11 @@ def search_web(query: str, label: str | None = None):
     results = tavily_client.search(query, max_results=1)
 
     return results
+
+
+@function_tool
+def get_weather(city: str):
+    """
+    Get the weather for a given city
+    """
+    return f"The weather in {city} is sunny"

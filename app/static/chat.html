@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Chat Assistant</title>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 2rem; background: #f5f5f7; }
+        .container { max-width: 800px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.08); padding: 1.5rem 2rem 2rem; }
+        h1 { margin-top: 0; font-size: 1.6rem; }
+        form { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+        label { font-weight: 600; font-size: 0.9rem; }
+        input[type="text"], textarea { width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid #d0d0d7; font-size: 0.95rem; }
+        textarea { resize: vertical; min-height: 80px; }
+        button { align-self: flex-start; padding: 0.6rem 1.2rem; border-radius: 999px; border: none; background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        #response { white-space: pre-wrap; border-radius: 8px; border: 1px solid #e0e0e7; padding: 0.8rem; min-height: 80px; background: #fafafa; font-size: 0.95rem; }
+        .tool-call { font-size: 0.85rem; color: #4b5563; margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Assistant</h1>
+        <form id="chat-form">
+            <div>
+                <label for="session_id">Session ID</label>
+                <input type="text" id="session_id" name="session_id" placeholder="" required />
+            </div>
+            <div>
+                <label for="message">Message</label>
+                <textarea id="message" name="message" required placeholder="Ask me anything..."></textarea>
+            </div>
+            <button type="submit" id="submit-btn">Send</button>
+        </form>
+        <div id="response"></div>
+        <div id="tool-calls"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('chat-form');
+        const responseDiv = document.getElementById('response');
+        const toolCallsDiv = document.getElementById('tool-calls');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            responseDiv.textContent = '';
+            toolCallsDiv.innerHTML = '';
+
+            const sessionId = document.getElementById('session_id').value || 'web-session';
+            const message = document.getElementById('message').value;
+
+            submitBtn.disabled = true;
+
+            try {
+                const resp = await fetch('/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ session_id: sessionId, message })
+                });
+
+                if (!resp.ok || !resp.body) {
+                    responseDiv.textContent = 'Request failed with status ' + resp.status;
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+
+                    const lines = chunk.split('\n\n');
+                    for (const line of lines) {
+                        if (!line.trim().startsWith('data:')) continue;
+                        const jsonPart = line.trim().slice(5).trim();
+                        if (!jsonPart) continue;
+                        try {
+                            const evt = JSON.parse(jsonPart);
+                            if (evt.type === 'text') {
+                                responseDiv.textContent += evt.content;
+                            } else if (evt.type === 'tool_call') {
+                                const div = document.createElement('div');
+                                div.className = 'tool-call';
+                                div.textContent = 'Tool called: ' + evt.tool_name + ' ' + JSON.stringify(evt.arguments);
+                                toolCallsDiv.appendChild(div);
+                            }
+                        } catch (err) {
+                            console.error('Failed to parse event', err, jsonPart);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                responseDiv.textContent = 'Error: ' + err;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
+
